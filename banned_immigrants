@@ -1,0 +1,80 @@
+#immigration by banned country
+# reproducing graph from https://www.graphiq.com/search/search?cid=1&query=immigration
+# data from https://www.dhs.gov/immigration-statistics/yearbook table 3
+
+
+
+library(xlsx)
+library(dplyr)
+library(plotly)
+library(reshape)
+library(varhandle)
+zipped_file_2013 <- "https://www.dhs.gov/sites/default/files/publications/LPR%202013_1.zip"
+download.file(zipped_file_2013, "04_13_immigration.zip")
+
+
+tables_download <- unzip("04_13_immigration.zip")
+immigration_04_13<-read.xlsx("2013_table3d.xls", sheetName = "Table 3", startRow = 16,endRow= 221, header = FALSE)
+
+
+
+colnames(immigration_04_13)<-c("Country", "2004", "2005", "2006", "2007", "2008", "2009", "2010","2011","2012", "2013")
+
+immigration_04_13$`2004`<-as.numeric(as.character(immigration_04_13$`2004`))
+immigration_04_13$`2005`<-as.numeric(as.character(immigration_04_13$`2005`))
+immigration_04_13$`2006`<-as.numeric(as.character(immigration_04_13$`2006`))
+immigration_04_13$`2007`<-as.numeric(as.character(immigration_04_13$`2007`))
+immigration_04_13$`2008`<-as.numeric(as.character(immigration_04_13$`2008`))
+immigration_04_13$`2009`<-as.numeric(as.character(immigration_04_13$`2009`))
+immigration_04_13$`2010`<-as.numeric(as.character(immigration_04_13$`2010`))
+immigration_04_13$`2011`<-as.numeric(as.character(immigration_04_13$`2011`))
+immigration_04_13$`2012`<-as.numeric(as.character(immigration_04_13$`2012`))
+immigration_04_13$`2013`<-as.numeric(as.character(immigration_04_13$`2013`))
+
+# used google scraper to scrape "https://www.dhs.gov/immigration-statistics/yearbook/2015/table3"
+Im15<- read.csv("2015_immigration.csv", header = TRUE, stringsAsFactors = FALSE)
+colnames(Im15)<-c("Country", "2013", "2014", "2015")
+Im15$`2014` <- as.numeric(gsub(",","",Im15$`2014`))
+Im15$`2015` <- as.numeric(gsub(",","",Im15$`2015`))
+
+
+Im04_13_filter<-filter(immigration_04_13, Country == "Iran"| Country == "Syria"| Country == "Iraq" | Country == "Yemen" | Country==
+                         "Sudan" | Country == "Somalia" | Country == "Libya" )
+
+Im15_filter<-filter(Im15, Country == "Iran"| Country == "Syria"| Country == "Iraq" | Country == "Yemen" | Country==
+                      "Sudan" | Country == "Somalia" | Country == "Libya" )
+
+Immigrants <- Im04_13_filter
+Immigrants$'2014'<-Im15_filter$`2014`
+Immigrants$'2015'<-Im15_filter$`2015`
+rownames(Immigrants)<-Immigrants$Country
+
+
+
+
+Immigrants.t<-t(Immigrants)
+Im_dframe<-as.data.frame(Immigrants.t)
+Im_dframe<- Im_dframe[-c(1), ]  
+Im_dframe$Year<-as.character(cbind(2004:2015))
+
+
+p <- plot_ly(Im_dframe, x = ~ Im_dframe$Year, y = ~Libya, type = 'bar', name = 'Libya') %>%
+  
+  add_trace(y = ~Yemen, name = 'Yemen') %>%
+  add_trace(y = ~Syria, name = 'Syria') %>%
+  add_trace(y = ~Sudan, name = 'Sudan') %>%
+  add_trace(y = ~Iraq, name = 'Iraq') %>%
+  add_trace(y = ~Somalia, name = 'Somalia') %>%
+  add_trace(y = ~Iran, name = 'Iran') %>%
+  layout(title = "Immigration from Countries Listed in Executive Order", 
+         yaxis = list(showticklabels = FALSE, title = "Immigrants"),xaxis = list(title = ""), barmode = 'stack')
+
+p
+
+Sys.setenv("plotly_username"="mmcgunagle")
+Sys.setenv("plotly_api_key"="xxxxxxxxxxxxxx")
+
+chart_link = plotly_POST(p, filename="banned_immigrants")
+chart_link
+
+
